@@ -1,10 +1,10 @@
 
 ---
-#YAML header: a set of key   
 title: "Hello"
 author: "Me"
-date: date
-output: _document (i.e., html_document, pdf_document, word_document)
+date: "date"
+rmd_files: ["file.Rmd", "file2.Rmd"]
+output: html_document (i.e., html_document, pdf_document, word_document)
 ---
 
 # Header 1
