@@ -4,7 +4,7 @@ title: "Hello"
 author: "Me"
 date: "date"
 rmd_files: ["file.Rmd", "file2.Rmd"]
-output: html_document (i.e., html_document, pdf_document, word_document)
+output: html_document 
 ---
 
 # Header 1
