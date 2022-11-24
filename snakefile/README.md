@@ -74,3 +74,132 @@ rule all:
 snakemake -n
 ```
 Here, this means that we add a rule, to the top of our workflow. When executing Snakemake with the execution plan for creating the final file, summarization of all results
+
+Advanced:
+```
+ rule:
+    input:
+    output:
+    threads: 8
+    shell:
+snakemake --cores 10
+```
+Thread: multiple thread to speed up computation
+cores: execution CPU cores, if no number is given, all available cores are used
+
+samples to be considered can be provided by Python list in snakefile
+To be customizable and adaptable to new data use config
+Config can be writen in JSON or YAML and are used with the configfile directive 
+
+To the top of snakefile add:
+```
+configfile: "config.yaml"
+
+This file yields:
+samples:
+    A: data/samples/A.fastq
+    B: data/samples/B.fastq
+``` 
+snakefile will load config file and store its content into globally available dictionary named config 
+```
+rule bcftools_call:
+    input:
+        fa="data/genome.fa",
+        bam=expand("sorted_reads/{sample}.bam", sample=config["samples"]),
+        bai=expand("sorted_reads/{sample}.bam.bai", sample=config["samples"])
+```
+The expand functions in the list of input files of the rule bcftools_call are executed during the initialization phase. In this phase, we don’t know about jobs, wildcard values and rule dependencies. Hence, we cannot determine the FASTQ paths for rule bwa_map from the config file in this phase, because we don’t even know which jobs will be generated from that rule. Instead, we need to defer the determination of input files to the DAG phase. This can be achieved by specifying an input function instead of a string as inside of the input directive. For the rule bwa_map this works as follows:
+```
+def get_bwa_map_input_fastqs(wildcards):
+    return config["samples"][wildcards.sample]
+
+rule bwa_map:
+    input:
+        "data/genome.fa",
+        get_bwa_map_input_fastqs
+    output:
+        "mapped_reads/{sample}.bam"
+    threads: 8
+    shell:
+        "bwa mem -t {threads} {input} | samtools view -Sb - > {output}"
+```
+Rule parameter:
+Shell commands may need additional paprameters to be set depending on the wildcard values fo the job
+For this, Snakemake allows to define arbitrary parameters for rules with the params directive
+```
+rule bwa_map:
+    input:
+        "data/genome.fa",
+        get_bwa_map_input_fastqs
+    output:
+        "mapped_reads/{sample}.bam"
+    params:
+        rg=r"@RG\tID:{sample}\tSM:{sample}"
+    threads: 8
+    shell:
+        "bwa mem -R '{params.rg}' -t {threads} {input} | samtools view -Sb - > {output}"
+```
+Log:
+Store log, organized when running parallel
+```
+rule bwa_map:
+    input:
+        "data/genome.fa",
+        get_bwa_map_input_fastqs
+    output:
+        "mapped_reads/{sample}.bam"
+    params:
+        rg=r"@RG\tID:{sample}\tSM:{sample}"
+    log:
+        "logs/bwa_mem/{sample}.log"
+    threads: 8
+    shell:
+        "(bwa mem -R '{params.rg}' -t {threads} {input} | "
+        "samtools view -Sb - > {output}) 2> {log}"
+```
+Marking output files temporally to save storage space:
+```
+rule bwa_map:
+    input:
+        "data/genome.fa",
+        get_bwa_map_input_fastqs
+    output:
+        temp("mapped_reads/{sample}.bam")
+    params:
+        rg=r"@RG\tID:{sample}\tSM:{sample}"
+    log:
+        "logs/bwa_mem/{sample}.log"
+    threads: 8
+    shell:
+        "(bwa mem -R '{params.rg}' -t {threads} {input} | "
+        "samtools view -Sb - > {output}) 2> {log}"
+```
+BAM is deleted once coresponding job has been executed 
+If we wish to protect the final BAM from accidental del/mod
+```
+rule samtools_sort:
+    input:
+        "mapped_reads/{sample}.bam"
+    output:
+        protected("sorted_reads/{sample}.bam")
+    shell:
+        "samtools sort -T sorted_reads/{wildcards.sample} "
+        "-O bam {input} > {output}"
+```
+        
+ Automatic deployment of software dependencies:
+ Specify isolated software env for a whole wokflow with `envs/samtools.yaml` that yields:
+ ```
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - samtools =1.9
+
+execute snakemake with:  
+snakemake --use-conda --cores 1
+```
+        
+
+
+
