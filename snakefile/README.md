@@ -36,5 +36,41 @@ snakemake -np mapped_reads/A.bam
  ```
  snakemake --cores 1 mapped_reads/A.bam
  ```
- Specifying the nuber of cores to use
+ Specifying the number of cores to use
  
+ The previous example specifies for 1 sample "A", to automate processing for all samples, use generalizing rules of named wildcards.
+ Replace the A with wildcard {sample}, and yields
+ ```
+ rule bwa_map:
+    input:
+        "data/genome.fa",
+        "data/samples/{sample}.fastq"
+    output:
+        "mapped_reads/{sample}.bam"
+    shell:
+        "bwa mem {input} | samtools view -Sb - > {output}"
+ ```
+ use expand function when using multiple wildcards
+ When using own custum script:
+ ```
+ rule plot_quals:
+    input:
+        "calls/all.vcf"
+    output:
+        "plots/quals.svg"
+    script:
+        "scripts/plot-quals.py"
+ ```
+ Script paths are always relative to the referring Snakefile.  
+ for Rscripts use `snakemake@input[["myfile"]].`
+ 
+ Target rule:
+ Rule names as targets, if requested rule does not have wildcards
+ Snakemake will define the first rule of the Snakefile as the target. Hence, it is best practice to have a rule all at the top of the workflow which has all typically desired target files as input files.
+```
+rule all:
+    input:
+        "plots/quals.svg"
+snakemake -n
+```
+Here, this means that we add a rule, to the top of our workflow. When executing Snakemake with the execution plan for creating the final file, summarization of all results
