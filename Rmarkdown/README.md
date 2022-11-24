@@ -42,7 +42,7 @@ system("git config --global user.email gitemail")
 #Link R with git @R console  
 `system("git remote add origin https://github.com/[USER]/[repo]")`
 
-#at Rstudio 
+#at Rstudio   
 `system("git init")`
 At the project options popup choose the origin to be ur remote github repo
 ```
