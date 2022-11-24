@@ -22,9 +22,9 @@ superscript^2^
   ```{r}
   code(hi)
   ```
- #{r eval=TRUE} evaluates code and display results
- #{r echo=TRUE} display code with results 
- #{r error=TRUE} display error 
+ #{r eval=TRUE} evaluates code and display results  
+ #{r echo=TRUE} display code with results   
+ #{r error=TRUE} display error   
 
 #Render 
 Run rmarkdown::render("<file path>")
