@@ -43,7 +43,7 @@ system("git config --global user.email gitemail")
 `system("git remote add origin https://github.com/[USER]/[repo]")`
 
 #at Rstudio   
-`system("git init")`
+`system("git init")`  
 At the project options popup choose the origin to be ur remote github repo
 ```
 git pull: fetch and merge synchronizing local repo 
