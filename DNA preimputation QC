@@ -7,3 +7,6 @@ for i in *.vcf; do bcftools annotate -x ^FORMAT/GT $i -o ${i%.vcf}_GT.vcf; done
 parallel bgzip {}::: *_GT.vcf
 parallel tabix {} ::: *_GT.vcf.gz
 bcftools merge *_GT.vcf.gz -O z -o aging_382.vcf.gz --force-samples
+bcftools query -l aging_382.vcf.gz | wc -l
+
+
