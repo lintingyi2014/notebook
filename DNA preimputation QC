@@ -1,0 +1,9 @@
+Aging/n=382 
+
+# Preparing VCF
+grep -RiIl 'Integer' | xargs sed -i 's/Integer/Float/g'
+for i in *.vcf; do echo bcftools annotate -x ^FORMAT/GT $i -o ${i%.vcf}_GT.vcf; done 
+for i in *.vcf; do bcftools annotate -x ^FORMAT/GT $i -o ${i%.vcf}_GT.vcf; done 
+parallel bgzip {}::: *_GT.vcf
+parallel tabix {} ::: *_GT.vcf.gz
+bcftools merge *_GT.vcf.gz -O z -o aging_382.vcf.gz --force-samples
