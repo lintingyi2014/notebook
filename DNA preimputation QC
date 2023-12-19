@@ -6,3 +6,12 @@ module load plink/3.6-alpha
 # Convert VCF to binary PLINK format
 plink2 --vcf project_207_hg38_split_multiallelics_removeUnstChr.vcf --double-id --set-all-var-ids '@:#:$r:$a' --new-id-max-allele-len 10000 --make-bed --out project_207_hg38
 
+# Step 1: Calculate the Missingness Rate
+```
+# Calculate missingness rate
+plink2 --bfile project_207_hg38 --missing sample-only --out project_207_hg38
+
+# Record samples with missingness rate > 5%
+awk '$5 > 0.05' project_207_hg38.smiss > project_207_hg38_removed_0.05FMISS
+```
+
