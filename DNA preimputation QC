@@ -1,12 +1,8 @@
-Aging/n=382 
+# VCF Input into PLINK for Binary Files (.fam, .bim, .bed)
 
-# Preparing VCF
-grep -RiIl 'Integer' | xargs sed -i 's/Integer/Float/g'
-for i in *.vcf; do echo bcftools annotate -x ^FORMAT/GT $i -o ${i%.vcf}_GT.vcf; done 
-for i in *.vcf; do bcftools annotate -x ^FORMAT/GT $i -o ${i%.vcf}_GT.vcf; done 
-parallel bgzip {}::: *_GT.vcf
-parallel tabix {} ::: *_GT.vcf.gz
-bcftools merge *_GT.vcf.gz -O z -o aging_382.vcf.gz --force-samples
-bcftools query -l aging_382.vcf.gz | wc -l
+```bash
+module load plink/3.6-alpha
 
+# Convert VCF to binary PLINK format
+plink2 --vcf project_207_hg38_split_multiallelics_removeUnstChr.vcf --double-id --set-all-var-ids '@:#:$r:$a' --new-id-max-allele-len 10000 --make-bed --out project_207_hg38
 
