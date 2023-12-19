@@ -1,21 +1,19 @@
 # VCF Input into PLINK for Binary Files (.fam, .bim, .bed)
 
-```bash
+
 module load plink/3.6-alpha
 
 # Convert VCF to binary PLINK format
 plink2 --vcf project_207_hg38_split_multiallelics_removeUnstChr.vcf --double-id --set-all-var-ids '@:#:$r:$a' --new-id-max-allele-len 10000 --make-bed --out project_207_hg38
 Step 1: Calculate the Missingness Rate
-bash
-Copy code
+
 # Calculate missingness rate
 plink2 --bfile project_207_hg38 --missing sample-only --out project_207_hg38
 
 # Record samples with missingness rate > 5%
 awk '$5 > 0.05' project_207_hg38.smiss > project_207_hg38_removed_0.05FMISS
 Step 2: Ancestry Check
-bash
-Copy code
+
 # Perform ancestry check using SHARDS
 python /data/HumanRNAProject/Aging_samples/Genotype/SHARDS-main/src/shards.py \
   --study_vcf dedup_mgs1234.vcf.gz \
@@ -27,8 +25,7 @@ python /data/HumanRNAProject/Aging_samples/Genotype/SHARDS-main/src/shards.py \
 # Submit SHARDS job
 sbatch --cpus-per-task=8 --mem=20g --gres=lscratch:100 --time=72:00:00 submit_shards_aging.sh
 Step 3: Sex Check
-bash
-Copy code
+
 # Assign sex information to .fam file
 module load plink/1.9.0-beta4.4
 plink --bfile project_207_hg38_nomiss --update-sex sex_check.txt --make-bed -out project_207_hg38_nomiss
@@ -40,8 +37,7 @@ plink --bfile project_207_hg38_nomiss --check-sex --out project_207_hg38_nomiss
 awk '/PROBLEM/' project_207_hg38_nomiss.sexcheck > outputID.sexcheck.txt
 cat outputID.sexcheck.txt
 Step 4: Heterozygosity Test
-bash
-Copy code
+
 # Remove samples with more than 5 standard deviations away from mean heterozygosity
 plink --bfile project_207_hg38_nomiss --chr 1-22 --het --homozyg-kb 1000 --out project_207_hg38_nomiss
 
@@ -58,8 +54,7 @@ awk '{s+=$8; ss+=$8^2} END{print m=s/NR, sqrt(ss/NR-m^2)}' project_207_hg38_nomi
 awk 'NR==1 || $8 < 0.2259585' project_207_hg38_nomiss.het.v3
 awk 'NR==1 || $8 > 0.3791315' project_207_hg38_nomiss.het.v3
 Step 5: IBD Calculation
-bash
-Copy code
+
 # Perform LD pruning
 plink --bfile project_207_hg38_nomiss --indep-pairwise 200 100 0.1 --out project_207_hg38_nomiss_LD_pruned
 
@@ -70,8 +65,7 @@ plink --bfile project_207_hg38_nomiss --extract project_207_hg38_nomiss_LD_prune
 awk 'NR==1 || $9 > 0.1875' project_207_hg38_nomiss_LD_pruned.genome > outputID.ibdcheck.txt
 awk 'NR==FNR {ids[$1]; next} $2 in ids' IBD_pairs_callrate.txt project_207_hg38.smiss > IBD_pairs_callrate_FMISS.txt
 Step 2: Hard Call Variant QC
-bash
-Copy code
+
 # Split chrX into nonPAR and PAR regions
 plink2 --bfile project_207_hg38_nomiss_noIBD --split-par b38 --make-bed --out project_207_hg38_nomiss_noIBD_splitPAR
 
@@ -100,8 +94,7 @@ plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid --exc
 # Remove mitochondrial variants
 plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove --not-chr MT --make-bed --out project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT
 Step 10: Infer Ancestry and Split by Subpopulations
-bash
-Copy code
+
 # Perform ancestry inference using SHARDS
 # (Assuming SHARDS results include subpopulations, e.g., EUR)
 
@@ -109,8 +102,7 @@ Copy code
 plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT -chr 1-22,PAR1,PAR2 --make-bed --out project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT_Autosomes_PAR
 plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT -chr X --make-bed --out project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT_X
 Step 12: Assign Heterozygous Sites on non-PAR Region of ChrX in Males to Missing
-bash
-Copy code
+
 # Extract non-PAR region of ChrX in males
 plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT --keep-males --chr X --make-bed --out project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT_Male_chrX
 
@@ -123,8 +115,7 @@ plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indel
 # Merge male and female datasets
 module load plink/1.9.0-beta4.4
 plink --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT_Male_chrX_sethhmissing --bmerge project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT_Female_chrX --keep-allele-order --make-bed --out project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT_Male_chrX_sethhmissing_mergeMalesFemales
-bash
-Copy code
+
 # Merge with PAR regions
 module load plink/3.6-alpha
 plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_freq_mono_newid_indelremove_removeMT --chr PAR1,PAR2 --make-bed --out project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_PAR
@@ -147,18 +138,67 @@ plink --merge-list mergelist2.txt --allow-extra-chr --make-bed --out project_207
 module load plink/3.6-alpha
 plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr --rm-dup force-first --make-bed --out project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup
 Step 13: Extract Autosomes, PAR, and ChrX
-bash
-Copy code
+
 # Extract Autosomes
 plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_Autosome --hardy midp --out HWE_Auto
 
 # Extract PAR
 plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_PAR --hardy midp --out HWE_PAR
 
-# Extract ChrX and Females
+# ChrX and Female
 plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_X --hardy midp --out HWE_X
 
-# Count HWE failures
+# HWE fails < 1e-6
 awk 'NR==1 || $10 < 0.000001' HWE_Auto.hardy | wc -l
 awk 'NR==1 || $10 < 0.000001' HWE_PAR.hardy | wc -l
-awk 'NR==1 ||
+
+awk 'NR==1 || $10 < 0.000001' HWE_Auto.hardy > HWE_Auto_fail.txt
+awk 'NR==1 || $10 < 0.000001' HWE_PAR.hardy  > HWE_PAR_fail.txt
+awk 'NR==1 || $14 < 0.000001' HWE_X.hardy.x 
+
+awk 'NR==1 || $14 < 0.000001' HWE_X.hardy.x | wc -l
+70 # (includes 1 header)
+
+awk 'NR==1 || $14 < 0.000001' HWE_X.hardy.x >  HWE_X_fail.txt
+
+awk '{print $1,$2, $3,$4,$14}' HWE_X_fail.txt
+awk '{print $1,$2, $3,$4,$14}' HWE_X_fail.txt > HWE_X_fail_v2.txt
+
+awk '{print $1,$2, $3,$4,$10}' HWE_Auto_fail.txt
+awk '{print $1,$2, $3,$4,$10}' HWE_Auto_fail.txt > HWE_Auto_fail_v2.txt
+awk '{print $1,$2, $3,$4,$10}' HWE_PAR_fail.txt > HWE_PAR_fail_v2.txt 
+
+cat HWE_Auto_fail_v2.txt > HWE_fail_merged.txt 
+cat HWE_PAR_fail_v2.txt >> HWE_fail_merged.txt
+cat HWE_X_fail_v2.txt >> HWE_fail_merged.txt
+
+plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup \
+  --exclude HWE_fail_merged.txt --make-bed --out project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE
+
+# Convert to VCF
+plink2 --bfile project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE \
+  --recode vcf id-paste=iid --out project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup
+module load bcftools
+
+# Sort the VCF file
+bcftools sort project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE.vcf -Oz -o project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE.vcf.gz
+
+# Step 14: Remove missingness rate > 2%
+plink2 --vcf project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE.vcf.gz --geno 0.02 --recode vcf --out project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE_miss_vcf
+
+# Generate a VCF for each chromosome for TOPMed Imputation
+bgzip -c project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE_miss_vcf.vcf > project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE_miss_vcf.vcf.gz
+
+# Annotate chromosomes with names compatible with TOPMed
+bcftools annotate --rename-chrs /data/HumanRNAProject/Aging_samples/Genotype/hg38_to_vcf_mapping.txt -o project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE_miss_vcf_renamechr.vcf.gz -O z project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE_miss_vcf.vcf.gz
+
+# Index the annotated VCF
+tabix -p vcf project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE_miss_vcf_renamechr.vcf.gz
+
+# Index each chromosome separately
+bcftools index -s project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE_miss_vcf_renamechr.vcf.gz | cut -f 1 | while read C; do
+  bcftools view -O z -o project_207_hg38_SplitByChr.${C}.vcf.gz project_207_hg38_nomiss_noIBD_splitPAR_miss_mono_newid_indelremove_removeMT_sethhmissing_mergeMalesFemales_mergePAR_mergeChr_rmdup_HWE_miss_vcf_renamechr.vcf.gz -r "${C}"
+done
+
+# Fix file format issue for chromosome X
+zless project_207_hg38_SplitByChr.chrX.vcf.gz | sed 's/##fileformat=VCFv4.3/##fileformat=VCFv4.2/' | bgzip -c > project_207_hg38_SplitByChr.chrX_4.2.vcf.gz
