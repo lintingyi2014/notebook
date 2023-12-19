@@ -3,6 +3,8 @@
 # Massacusetts Eye and Ear, Harvard Medical School
 # 2023
 
+## Please refer to Github: Segre Lab/segrelabgenomics
+
 import re
 import pdb
 import time
